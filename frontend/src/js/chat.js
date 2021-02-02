@@ -20,7 +20,7 @@ export default class Chat {
         const button = container.querySelector('[data-id=sendNewMessage]');
         button.addEventListener('click', () => {
             if (this.webSocket.readyState === WebSocket.OPEN) {
-                this.webSocket.send(input.value);
+                this.webSocket.send(JSON.stringify({type: 'addMessage', data: input.value}));
               } else{
               }
         });
@@ -31,15 +31,14 @@ export default class Chat {
         const name = container.querySelector('[data-section=name]');
         const nameButton = container.querySelector('[data-section=nameok]');
         nameButton.addEventListener('click', () => {
-            this.webSocket.send({type: 'login', data: name.value});
+            this.webSocket.send(JSON.stringify({type: 'addUser', data: name.value}));
         });
-        this.subscribeToWSMessages();
     }
 
     subscribeToWS() {
         this.webSocket.addEventListener('open', () => {
             console.log('connected');
-            this.webSocket.send('Подключился клиент');
+            this.webSocket.send(JSON.stringify({type: 'system', data: 'Подключился клиент'}));
           });
 
           this.webSocket.addEventListener('close', (evt) => {
@@ -49,16 +48,20 @@ export default class Chat {
           this.webSocket.addEventListener('error', () => {
             console.log('Ошибка');
           });
-          this.webSocket.addEventListener('login', (evt) => {
-            console.log(evt);
+          this.webSocket.addEventListener('message', (evt) => {
+            const response = JSON.parse(evt.data);
+            if (response.type === "addMessage") {
+              this.pushMessageInDom(response.data);
+            } else if (response.type === "allUsers") {
+              console.log(response.data);
+            } else {
+              console.log(response.data);
+            }
           });
+
+
     }
-    subscribeToWSMessages() {
-        this.webSocket.addEventListener('message', (evt) => {
-            this.pushMessageInDom(evt.data);
-            console.log(evt);
-          });
-    }
+
 
     pushMessageInDom(data) {
         this.elementForMessagesInDOM.insertAdjacentHTML('beforeend', `

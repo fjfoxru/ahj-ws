@@ -47,25 +47,36 @@ const wsServer = new WS.Server({ server });
 
 
 const users = new Set();
+const messages = [];
 
 wsServer.on('connection', (ws, req) => {
-  ws.on('login', name => {
-    if (users.has(name)) {
-      send({type: 'login', data: false});
-    } else {
-      users.add(name);
-      send({type: 'login', data: true});
-    }
-  });
   ws.on('message', msg => {
-    // console.log('msg');
-    // ws.send('response');
-    [...wsServer.clients]
-    .filter(o => o.readyState === WS.OPEN)
-    .forEach(o => o.send(msg));
+    const message = JSON.parse(msg);
+    if (message.type === "addMessage") {
+      [...wsServer.clients]
+      .filter(o => o.readyState === WS.OPEN)
+      .forEach(o => o.send(msg));
+      messages.push(msg);
+    } else if (message.type === "addUser") {
+      if (users.has(message.data)) {
+        [...wsServer.clients]
+      .filter(o => o.readyState === WS.OPEN)
+      .forEach(o => o.send(JSON.stringify({type: 'addUser', data: false})));
+      } else {
+        users.add(message.data);
+        [...wsServer.clients]
+        .filter(o => o.readyState === WS.OPEN)
+        .forEach(o => o.send(JSON.stringify({type: "allUsers", data: Array.from(users)})));
+      }
+    }
+
+
+
+    
   });
 
-  ws.send('Сервер: чат запустился');
+  ws.send(JSON.stringify({type: 'system', data: 'Сервер: чат запустился'}));
+  ws.send(JSON.stringify({type: 'addMessage', data: messages}));
 });
 
 server.listen(port);
